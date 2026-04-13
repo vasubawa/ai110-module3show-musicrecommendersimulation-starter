@@ -17,17 +17,28 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+Content-based filtering: Match song attributes (genre, mood, energy, valence) to user preferences.
 
-Some prompts to answer:
+**Song Features:** genre, mood, energy, valence, tempo_bpm, danceability, acousticness
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+**UserProfile:** Preferred genres, target mood, target energy level, target valence, target danceability
 
-You can include a simple diagram or bullet list if helpful.
+**Algorithm Recipe:**
+- Genre match: +2.0 points if in favorite_genres
+- Mood match: +1.0 point if mood matches
+- Energy similarity: 1 - |song_energy - target_energy| (0-1 scale)
+- Valence similarity: 1 - |song_valence - target_valence| (0-1 scale)
+- Danceability similarity: 1 - |song_danceability - target_danceability| (0-1 scale)
+
+Total score = (2.0 × genre) + (1.0 × mood) + (0.5 × energy) + (0.25 × valence) + (0.25 × danceability)
+
+Sort all songs by score and return top K recommendations.
+
+**Potential Biases:**
+- Over-prioritizes genre: System may ignore great outlier songs from non-favorite genres
+- Limited to available features: Doesn't account for artist popularity, recency, or user listening context
+- Cold-start problem: New users need to explicitly define preferences
+- Filter bubble risk: May recommend only similar songs, missing musical discovery
 
 ---
 

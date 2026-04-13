@@ -9,10 +9,11 @@ You will implement the functions in recommender.py:
 - recommend_songs
 """
 
-from recommender import load_songs, recommend_songs
+from src.recommender import load_songs, recommend_songs
 
 
 def main() -> None:
+    """Run the Music Recommender Simulation with default user preferences."""
     songs = load_songs("data/songs.csv") 
 
     # Starter example profile
