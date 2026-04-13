@@ -145,20 +145,115 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     score += danceability_points
     reasons.append(f"Danceability similarity: {danceability_sim:.2f} ({danceability_points:.2f})")
     
+    # NEW: Popularity boost (0-100 scale, normalized to 0-0.5 points)
+    popularity = float(song.get('popularity', 50))
+    popularity_bonus = (popularity / 100) * 0.5
+    score += popularity_bonus
+    reasons.append(f"Popularity bonus: {popularity_bonus:.2f}")
+    
+    # NEW: Vibe tag matching (if user prefers certain vibes)
+    user_vibes = user_prefs.get("preferred_vibes", [])
+    if user_vibes and song.get('vibe') in user_vibes:
+        score += 0.3
+        reasons.append(f"Vibe match: {song['vibe']} (+0.3)")
+    
     return (score, reasons)
 
 def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
     """Rank all songs by score and return top k recommendations with explanations."""
+    return recommend_songs_mode(user_prefs, songs, k, mode="balanced")
+
+
+def recommend_songs_mode(user_prefs: Dict, songs: List[Dict], k: int = 5, mode: str = "balanced") -> List[Tuple[Dict, float, str]]:
+    """Rank songs using different scoring strategies.
+    
+    Modes:
+    - balanced: Original weighted scoring
+    - genre_first: 3x weight on genre matching
+    - mood_first: 3x weight on mood matching
+    """
     scored_songs = []
     
-    # Score each song
     for song in songs:
-        score, reasons = score_song(user_prefs, song)
+        if mode == "genre_first":
+            score, reasons = score_song_genre_first(user_prefs, song)
+        elif mode == "mood_first":
+            score, reasons = score_song_mood_first(user_prefs, song)
+        else:
+            score, reasons = score_song(user_prefs, song)
+        
         explanation = " | ".join(reasons)
         scored_songs.append((song, score, explanation))
     
-    # Sort by score (highest first) using sorted()
+    # Sort by score (highest first)
     ranked_songs = sorted(scored_songs, key=lambda x: x[1], reverse=True)
     
-    # Return top k
-    return ranked_songs[:k]
+    # Apply diversity penalty: penalize if artist already in top k
+    final_recs = []
+    seen_artists = set()
+    
+    for song, score, explanation in ranked_songs:
+        artist = song.get('artist', 'Unknown')
+        
+        if artist in seen_artists:
+            penalty = 0.5
+            score -= penalty
+            explanation += f" | DIVERSITY PENALTY: same artist ({artist}) -0.5"
+        
+        final_recs.append((song, score, explanation))
+        seen_artists.add(artist)
+        
+        if len(final_recs) >= k:
+            break
+    
+    return final_recs[:k]
+
+
+def score_song_genre_first(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
+    """Genre-first scoring: prioritize genre matching."""
+    score = 0.0
+    reasons = []
+    
+    user_genres = user_prefs.get("favorite_genres", [user_prefs.get("genre", "")])
+    if isinstance(user_genres, str):
+        user_genres = [user_genres]
+    
+    if song['genre'] in user_genres:
+        score += 5.0  # Boosted from 2.0
+        reasons.append(f"Genre PRIORITY: {song['genre']} (+5.0)")
+    
+    if song['mood'] == user_prefs.get("favorite_mood"):
+        score += 0.5
+        reasons.append(f"Mood: {song['mood']} (+0.5)")
+    
+    energy_sim = 1.0 - abs(float(song['energy']) - user_prefs.get("target_energy", 0.5))
+    energy_points = energy_sim * 0.3
+    score += energy_points
+    reasons.append(f"Energy: {energy_points:.2f}")
+    
+    return (score, reasons)
+
+
+def score_song_mood_first(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
+    """Mood-first scoring: prioritize mood matching."""
+    score = 0.0
+    reasons = []
+    
+    if song['mood'] == user_prefs.get("favorite_mood"):
+        score += 5.0  # Boosted from 1.0
+        reasons.append(f"Mood PRIORITY: {song['mood']} (+5.0)")
+    
+    user_genres = user_prefs.get("favorite_genres", [user_prefs.get("genre", "")])
+    if isinstance(user_genres, str):
+        user_genres = [user_genres]
+    
+    if song['genre'] in user_genres:
+        score += 0.5
+        reasons.append(f"Genre: {song['genre']} (+0.5)")
+    
+    energy_sim = 1.0 - abs(float(song['energy']) - user_prefs.get("target_energy", 0.5))
+    energy_points = energy_sim * 0.3
+    score += energy_points
+    reasons.append(f"Energy: {energy_points:.2f}")
+    
+    return (score, reasons)

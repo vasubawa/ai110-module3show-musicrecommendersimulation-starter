@@ -79,25 +79,37 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+### Test Profiles and Results
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+Three distinct user profiles were tested to evaluate system performance:
+
+#### 1. High-Energy Pop Profile
+![HighEnergy.png](HighEnergy.png)
+- Preferences: pop/electronic genres, happy mood, 0.8 energy, 0.80 valence, 0.78 danceability
+- Results: Correctly recommended upbeat, danceable pop songs (Sunrise City, Dancefloor Bliss, Summer Groove)
+- Observation: Genre match heavily influences ranking
+
+#### 2. Chill Lofi Profile  
+![ChillLofi.png](ChillLofi.png)
+- Preferences: lofi/ambient genres, chill mood, 0.35 energy, 0.55 valence, 0.50 danceability
+- Results: Successfully recommended low-energy relaxing songs (Library Rain, Midnight Coding, Spacewalk Thoughts)
+- Observation: System correctly deprioritized upbeat songs
+
+#### 3. Intense Rock Profile
+![IntenseRock.png](IntenseRock.png)
+- Preferences: rock/metal genres, intense mood, 0.92 energy, 0.40 valence, 0.65 danceability
+- Results: Ranked high-energy rock/metal tracks first (Storm Runner, Heavy Thunder)
+- Observation: System clearly differentiates mood-based preferences despite same high-energy requirement
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
-
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
-
-You will go deeper on this in your model card.
+- **Genre Over-Prioritization**: +2.0 points for genre match dominates scoring; excellent songs from non-preferred genres rarely rank high
+- **Filter Bubble**: Top 5 recommendations tend to be similar; low diversity in results
+- **Small Dataset**: Only 18 songs limits variety and cross-genre discovery
+- **Implicit Bias**: Pop songs represent 22% of catalog; system may favor them statistically
+- **No Contextualization**: Ignores user's activity, time of day, or recent listening history
 
 ---
 
